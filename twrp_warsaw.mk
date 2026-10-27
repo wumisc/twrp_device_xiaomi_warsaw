@@ -4,17 +4,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-DEVICE_PATH := device/xiaomi/warsaw
+$(call inherit-product, $(SRC_TARGET_DIR)/product/base.mk)
+$(call inherit-product, vendor/twrp/config/common.mk)
 
-# Inherit from device.mk configuration
-$(call inherit-product, $(DEVICE_PATH)/device.mk)
-
-## Device identifier
 PRODUCT_DEVICE := warsaw
 PRODUCT_NAME := twrp_warsaw
-PRODUCT_BRAND := Xiaomi
+PRODUCT_BRAND := Redmi
 PRODUCT_MODEL := Redmi K90 Ultra
 PRODUCT_MANUFACTURER := Xiaomi
 
-# Theme
-TW_STATUS_ICONS_ALIGN := center
+PRODUCT_USE_DYNAMIC_PARTITIONS := true
