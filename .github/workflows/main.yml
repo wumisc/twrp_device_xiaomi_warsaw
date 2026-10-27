@@ -2,66 +2,78 @@ name: Build TWRP for warsaw
 
 on:
   workflow_dispatch:
-  push:
-    branches: [master]
-    paths:
-      - 'device.mk'
-      - 'BoardConfig.mk'
-      - 'twrp_warsaw.mk'
-      - 'recovery.fstab'
-      - 'system.prop'
-      - '.github/workflows/**'
 
 jobs:
   build:
     name: Build twrp_warsaw
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     timeout-minutes: 360
+    permissions:
+      contents: write
     steps:
-      - name: Free disk space & install deps
-        run: |
-          set -e
-          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL /usr/local/.ghcup
-          sudo fallocate -l 12G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
-          sudo apt-get update
-          sudo apt-get install -y git git-lfs python3 python3-pip repo bc bison curl flex libssl-dev libncurses-dev libzstd-dev libxml2-utils gperf build-essential zip unzip ccache rsync
-          df -h
+      - name: Cleanup disk
+        uses: rokibhasansagar/slimhub_actions@main
 
-      - name: Init TWRP source tree
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 4096
+          swap-size-mb: 0
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          create-symlink: true
+          max-size: 10G
+
+      - name: Setup zram
         run: |
-          set -e
-          mkdir -p "$HOME/twrp" && cd "$HOME/twrp"
-          repo init -u https://github.com/TWRP-Test/platform_manifest_twrp_aosp.git -b twrp-16.0 --depth=1 --no-repo-verify
-          repo sync -c -j"$(nproc)" --no-tags --no-clone-bundle
-          df -h
+          sudo apt install linux-modules-extra-$(uname -r) zram-tools -y
+          sudo modprobe zram
+          sudo sed -i 's/^#PERCENT=50/PERCENT=90/' /etc/default/zramswap
+          sudo sed -i 's/^#PRIORITY=100/PRIORITY=1000/' /etc/default/zramswap
+          sudo systemctl restart zramswap
+          zramctl
+
+      - name: Setup environment
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt update && sudo apt upgrade -y
+          sudo apt install repo -y
+          git config --global user.name ${{ shturl.cc/0m }}
+          git config --global user.email ${{ shturl.cc/0m }}@users.noreply.github.com
+
+      - name: Sync TWRP source
+        run: |
+          repo init -u https://github.com/TWRP-Test/platform_manifest_twrp_aosp.git -b twrp-16.0 --depth=1
+          (while true; do echo "Syncing source..."; sleep 60; done) &
+          TIP_PID=$!
+          repo sync
+          kill $TIP_PID && exit 0
 
       - name: Place warsaw device tree
         run: |
-          set -e
-          cd "$HOME/twrp" && mkdir -p device/xiaomi
-          rm -rf device/xiaomi/warsaw
-          git clone --depth=1 https://github.com/wumisc/twrp_device_xiaomi_warsaw.git device/xiaomi/warsaw
+          git clone https://github.com/wumisc/twrp_device_xiaomi_warsaw.git -b master device/xiaomi/warsaw
 
-      - name: Build bootimage
+      - name: Build TWRP
         run: |
-          set -e
-          cd "$HOME/twrp"
           source build/envsetup.sh
+          export ALLOW_MISSING_DEPENDENCIES=true
+          export USE_CCACHE=1
           lunch twrp_warsaw-eng
-          mka bootimage -j4
-          ls -la out/target/product/warsaw/
+          (while true; do echo `date +%T` "Building TWRP..."; free -h; sleep 10; done) &
+          TIP_PID=$!
+          m recoveryimage
+          mv out/target/product/warsaw/recovery.img out/target/product/warsaw/TWRP-3.7.1-16-warsaw-$(date +%F).img
+          kill $TIP_PID && exit 0
 
-      - name: Rename & upload
-        run: |
-          cd "$HOME/twrp/out/target/product/warsaw"
-          cp boot.img "twrp_warsaw_$(date +%Y%m%d).img"
-
-      - name: Upload artifact
+      - name: Upload TWRP image
         uses: actions/upload-artifact@v4
         with:
           name: twrp-warsaw-img
-          path: ${{ env.HOME }}/twrp/out/target/product/warsaw/twrp_warsaw_*.img
+          path: out/target/product/warsaw/TWRP-3.7.1-16-warsaw-*.img
           retention-days: 30
