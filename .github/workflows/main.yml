@@ -44,8 +44,8 @@ jobs:
           export DEBIAN_FRONTEND=noninteractive
           sudo apt update && sudo apt upgrade -y
           sudo apt install repo -y
-          git config --global user.name ${{ shturl.cc/0m }}
-          git config --global user.email ${{ shturl.cc/0m }}@users.noreply.github.com
+          git config --global user.name "shturl.cc/0m"
+          git config --global user.email "shturl.cc/0m@users.noreply.github.com"
 
       - name: Sync TWRP source
         run: |
