@@ -18,13 +18,14 @@ jobs:
     name: Build twrp_warsaw
     runs-on: ubuntu-22.04
     timeout-minutes: 360   # 6h 上限
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      USE_CCACHE: 1
     steps:
       - name: Free disk space & install deps
         run: |
           set -e
-          # 清理不需要的大目录
           sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL /usr/local/.ghcup
-          # 加 swap 防止编译 OOM
           sudo fallocate -l 12G /swapfile
           sudo chmod 600 /swapfile
           sudo mkswap /swapfile
@@ -34,7 +35,19 @@ jobs:
             git git-lfs python3 python3-pip repo bc bison curl flex \
             libssl-dev libncurses-dev libzstd-dev libxml2-utils \
             gperf build-essential zip unzip ccache rsync
+          ccache -M 15G
+          ccache -z
           df -h
+
+      # 缓存 ccache：第二次起增量编译，编译阶段从 40 分钟降到 ~10 分钟
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-warsaw-${{ github.ref }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-warsaw-${{ github.ref }}-
+            ccache-warsaw-
 
       - name: Init TWRP source tree
         run: |
@@ -43,7 +56,7 @@ jobs:
           cd "$HOME/twrp"
           repo init -u https://github.com/TWRP-Test/platform_manifest_twrp_aosp.git \
               -b twrp-16.0 --depth=1 --no-repo-verify
-          repo sync -c -j"$(nproc)" --no-tags --no-clone-bundle --no-tags
+          repo sync -c -j"$(nproc)" --no-tags --no-clone-bundle
           df -h
 
       - name: Place warsaw device tree
@@ -61,8 +74,10 @@ jobs:
           cd "$HOME/twrp"
           source build/envsetup.sh
           lunch twrp_warsaw-eng
+          ccache -z
           # runner 内存有限，用 -j4；如 OOM 可改 -j2
           mka bootimage -j4
+          ccache -s
           ls -la out/target/product/warsaw/
 
       - name: Rename artifact
