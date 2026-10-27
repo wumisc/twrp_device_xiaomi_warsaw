@@ -26,6 +26,9 @@ jobs:
         run: |
           set -e
           sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL /usr/local/.ghcup
+          # runner 已有默认 swapfile，先关掉删掉再建新的，否则 fallocate 报 Text file busy
+          sudo swapoff -a || true
+          sudo rm -f /swapfile
           sudo fallocate -l 12G /swapfile
           sudo chmod 600 /swapfile
           sudo mkswap /swapfile
