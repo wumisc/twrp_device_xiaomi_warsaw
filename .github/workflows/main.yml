@@ -1,0 +1,67 @@
+name: Build TWRP for warsaw
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - 'device.mk'
+      - 'BoardConfig.mk'
+      - 'twrp_warsaw.mk'
+      - 'recovery.fstab'
+      - 'system.prop'
+      - '.github/workflows/**'
+
+jobs:
+  build:
+    name: Build twrp_warsaw
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    steps:
+      - name: Free disk space & install deps
+        run: |
+          set -e
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL /usr/local/.ghcup
+          sudo fallocate -l 12G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          sudo apt-get update
+          sudo apt-get install -y git git-lfs python3 python3-pip repo bc bison curl flex libssl-dev libncurses-dev libzstd-dev libxml2-utils gperf build-essential zip unzip ccache rsync
+          df -h
+
+      - name: Init TWRP source tree
+        run: |
+          set -e
+          mkdir -p "$HOME/twrp" && cd "$HOME/twrp"
+          repo init -u https://github.com/TWRP-Test/platform_manifest_twrp_aosp.git -b twrp-16.0 --depth=1 --no-repo-verify
+          repo sync -c -j"$(nproc)" --no-tags --no-clone-bundle
+          df -h
+
+      - name: Place warsaw device tree
+        run: |
+          set -e
+          cd "$HOME/twrp" && mkdir -p device/xiaomi
+          rm -rf device/xiaomi/warsaw
+          git clone --depth=1 https://github.com/wumisc/twrp_device_xiaomi_warsaw.git device/xiaomi/warsaw
+
+      - name: Build bootimage
+        run: |
+          set -e
+          cd "$HOME/twrp"
+          source build/envsetup.sh
+          lunch twrp_warsaw-eng
+          mka bootimage -j4
+          ls -la out/target/product/warsaw/
+
+      - name: Rename & upload
+        run: |
+          cd "$HOME/twrp/out/target/product/warsaw"
+          cp boot.img "twrp_warsaw_$(date +%Y%m%d).img"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: twrp-warsaw-img
+          path: ${{ env.HOME }}/twrp/out/target/product/warsaw/twrp_warsaw_*.img
+          retention-days: 30
