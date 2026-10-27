@@ -21,6 +21,7 @@ TARGET_ARCH_VARIANT := armv8-a
 TARGET_CPU_ABI := arm64-v8a
 TARGET_CPU_ABI2 :=
 TARGET_CPU_VARIANT := generic
+TARGET_CPU_VARIANT_RUNTIME := oryon
 
 # Bootloader
 PRODUCT_PLATFORM := sun
@@ -35,7 +36,9 @@ QCOM_BOARD_PLATFORMS += xiaomi_sm8750
 # Kernel
 BOARD_KERNEL_IMAGE_NAME       := Image
 BOARD_BOOT_HEADER_VERSION     := 4
+BOARD_BOOTIMG_HEADER_VERSION  := 4
 BOARD_KERNEL_PAGESIZE         := 4096
+BOARD_USES_GENERIC_KERNEL_IMAGE := true
 TARGET_KERNEL_CLANG_COMPILE   := true
 # NOTE: recovery image excludes the kernel (see BOARD_EXCLUDE_KERNEL_FROM_RECOVERY_IMAGE).
 # This prebuilt kernel is only used by mkbootimg to pack the header. Replace it with the
@@ -59,6 +62,7 @@ AB_OTA_PARTITIONS += \
     dtbo \
     vbmeta \
     vbmeta_system \
+    mi_ext \
     odm \
     product \
     system \
@@ -83,6 +87,10 @@ TARGET_COPY_OUT_VENDOR_DLKM := vendor_dlkm
 BOARD_VENDOR_DLKMIMAGE_FILE_SYSTEM_TYPE := ext4
 
 BOARD_RECOVERYIMAGE_PARTITION_SIZE := 104857600
+BOARD_BOOTIMAGE_PARTITION_SIZE := 100663296
+BOARD_INIT_BOOT_IMAGE_PARTITION_SIZE := 8388608
+BOARD_VENDOR_BOOTIMAGE_PARTITION_SIZE := 100663296
+BOARD_FLASH_BLOCK_SIZE := 262144
 
 # Dynamic Partition
 # TODO(warsaw): verify super size from your device's partition table (`adb shell ls -l /dev/block/by-name/super` or `lptools`). Value below inherited from SM8750/sun common tree.
@@ -97,6 +105,7 @@ BOARD_ROOT_EXTRA_FOLDERS := firmware persist
 # File systems
 TARGET_USERIMAGES_USE_EXT4 := true
 TARGET_USERIMAGES_USE_F2FS := true
+BOARD_USERDATAIMAGE_FILE_SYSTEM_TYPE := f2fs
 
 # Extras
 TARGET_SYSTEM_PROP += $(DEVICE_PATH)/system.prop
@@ -146,6 +155,9 @@ TW_INCLUDE_WIFI := true
 # switch TW_THEME to portrait_xhdpi (or portrait_xxhdpi) to match the actual panel density.
 TW_THEME := portrait_hdpi
 TW_FRAMERATE := 120
+TW_NO_SCREEN_BLANK := true
+TW_HAS_EDL_MODE := true
+TW_DEFAULT_LANGUAGE := zh_CN
 RECOVERY_SDCARD_ON_DATA := true
 TARGET_RECOVERY_QCOM_RTC_FIX := true
 TW_EXCLUDE_DEFAULT_USB_INIT := true
