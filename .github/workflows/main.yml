@@ -49,10 +49,10 @@ jobs:
 
       - name: Sync TWRP source
         run: |
-          repo init -u https://github.com/TWRP-Test/platform_manifest_twrp_aosp.git -b twrp-16.0 --depth=1
+          repo init -u https://github.com/TWRP-Test/platform_manifest_twrp_aosp.git -b twrp-16.0
           (while true; do echo "Syncing source..."; sleep 60; done) &
           TIP_PID=$!
-          repo sync
+          repo sync -c -j$(nproc) --no-tags
           kill $TIP_PID && exit 0
 
       - name: Place warsaw device tree
