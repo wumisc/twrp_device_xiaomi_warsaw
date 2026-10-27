@@ -15,9 +15,9 @@ ALLOW_MISSING_DEPENDENCIES := true
 BUILD_BROKEN_DUP_RULES := true
 BUILD_BROKEN_ELF_PREBUILT_PRODUCT_COPY_FILES := true
 
-# Architecture
+# Architecture (from LineageOS warsaw official tree)
 TARGET_ARCH := arm64
-TARGET_ARCH_VARIANT := armv8-a
+TARGET_ARCH_VARIANT := armv8-2a
 TARGET_CPU_ABI := arm64-v8a
 TARGET_CPU_ABI2 :=
 TARGET_CPU_VARIANT := generic
@@ -59,10 +59,10 @@ AB_OTA_PARTITIONS += \
     boot \
     init_boot \
     vendor_boot \
+    recovery \
     dtbo \
     vbmeta \
     vbmeta_system \
-    mi_ext \
     odm \
     product \
     system \
@@ -86,18 +86,20 @@ BOARD_USES_VENDOR_DLKMIMAGE := true
 TARGET_COPY_OUT_VENDOR_DLKM := vendor_dlkm
 BOARD_VENDOR_DLKMIMAGE_FILE_SYSTEM_TYPE := ext4
 
+# Partition sizes (from LineageOS warsaw official tree)
 BOARD_RECOVERYIMAGE_PARTITION_SIZE := 104857600
 BOARD_BOOTIMAGE_PARTITION_SIZE := 100663296
 BOARD_INIT_BOOT_IMAGE_PARTITION_SIZE := 8388608
 BOARD_VENDOR_BOOTIMAGE_PARTITION_SIZE := 100663296
-BOARD_FLASH_BLOCK_SIZE := 262144
+BOARD_DTBOIMG_PARTITION_SIZE := 18874368
+BOARD_PVMFWIMAGE_PARTITION_SIZE := 1048576
+BOARD_FLASH_BLOCK_SIZE := 4096
 
-# Dynamic Partition
-# TODO(warsaw): verify super size from your device's partition table (`adb shell ls -l /dev/block/by-name/super` or `lptools`). Value below inherited from SM8750/sun common tree.
-BOARD_SUPER_PARTITION_SIZE := 11811160064
+# Dynamic Partition (SUPER size from LineageOS: 13.4GB, not 11.8GB)
+BOARD_SUPER_PARTITION_SIZE := 13421772800
 BOARD_SUPER_PARTITION_GROUPS := qti_dynamic_partitions
-BOARD_QTI_DYNAMIC_PARTITIONS_SIZE := $(shell echo $$(($(BOARD_SUPER_PARTITION_SIZE) - 4194304)))
-BOARD_QTI_DYNAMIC_PARTITIONS_PARTITION_LIST := system system_ext product vendor vendor_dlkm odm system_dlkm
+BOARD_QTI_DYNAMIC_PARTITIONS_SIZE := 13411287040
+BOARD_QTI_DYNAMIC_PARTITIONS_PARTITION_LIST := odm product system system_dlkm system_ext vendor vendor_dlkm
 
 # System as root
 BOARD_ROOT_EXTRA_FOLDERS := firmware persist
@@ -150,9 +152,12 @@ TW_INCLUDE_FASTBOOTD := true
 # Wi-Fi
 TW_INCLUDE_WIFI := true
 
+# Screen: 1280x2772, 520dpi (from LineageOS warsaw)
+TARGET_SCREEN_WIDTH := 1280
+TARGET_SCREEN_HEIGHT := 2772
+TARGET_SCREEN_DENSITY := 520
+
 # Other TWRP Configurations
-# TODO(warsaw): warsaw has a 6.83" high-DPI OLED. If the TWRP UI renders too small/large on first boot,
-# switch TW_THEME to portrait_xhdpi (or portrait_xxhdpi) to match the actual panel density.
 TW_THEME := portrait_hdpi
 TW_FRAMERATE := 120
 TW_NO_SCREEN_BLANK := true
@@ -175,9 +180,8 @@ TW_SUPPORT_INPUT_AIDL_HAPTICS := true
 TW_SUPPORT_INPUT_AIDL_HAPTICS_FQNAME := "IVibrator/vibratorfeature"
 TW_SUPPORT_INPUT_AIDL_HAPTICS_FIX_OFF := true
 TW_USE_SERIALNO_PROPERTY_FOR_DEVICE_ID := true
-# TODO(warsaw): verify the touch/panel .ko list below against your vendor_dlkm.
-# thales uses synaptics_tcm2; warsaw may ship a different touch driver (check /vendor/lib/modules on the device).
-TW_LOAD_VENDOR_MODULES := "adsp_loader_dlkm.ko rproc_qcom_common.ko q6_dlkm.ko qcom_q6v5.ko qcom_q6v5_pas.ko qcom_sysmon.ko synaptics_tcm2.ko nxp-nci.ko stm_st54se_gpio.ko stm_nfc_i2c.ko qcom-hv-haptics.ko cs40l26-i2c.ko cnss_prealloc.ko cnss_nl.ko wlan_firmware_service.ko cnss_plat_ipc_qmi_svc.ko cnss_utils.ko cnss2.ko gsim.ko rmnet_mem.ko ipam.ko rfkill.ko cfg80211.ko"
+# Touch modules (from LineageOS warsaw: xiaomi_touch + goodix_core, not synaptics)
+TW_LOAD_VENDOR_MODULES := "adsp_loader_dlkm.ko rproc_qcom_common.ko q6_dlkm.ko qcom_q6v5.ko qcom_q6v5_pas.ko qcom_sysmon.ko xiaomi_touch.ko goodix_core.ko nxp-nci.ko stm_st54se_gpio.ko stm_nfc_i2c.ko qcom-hv-haptics.ko cs40l26-i2c.ko cnss_prealloc.ko cnss_nl.ko wlan_firmware_service.ko cnss_plat_ipc_qmi_svc.ko cnss_utils.ko cnss2.ko gsim.ko rmnet_mem.ko ipam.ko rfkill.ko cfg80211.ko"
 TW_LOAD_VENDOR_MODULES_EXCLUDE_GKI := true
 TW_LOAD_PREBUILT_MODULES_AT_FIRST := true
 TW_CUSTOM_CPU_TEMP_PATH := "/sys/class/thermal/thermal_zone1/temp" # CPU-0-0-0
